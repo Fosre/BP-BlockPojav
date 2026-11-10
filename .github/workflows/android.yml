@@ -36,12 +36,14 @@ jobs:
       - name: Set up Android SDK
         run: |
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          test -x "$SDKMANAGER"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          command -v sdkmanager
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
 
       - name: Install Android NDK
-        run: sdkmanager --install "ndk;27.0.12077973"
+        run: "$SDKMANAGER" --install "ndk;27.0.12077973"
 
       - name: Set up Rust Android target
         uses: dtolnay/rust-toolchain@stable
@@ -85,3 +87,4 @@ jobs:
           path: BlockPojav-Beta-source.zip
           if-no-files-found: error
           retention-days: 90
+

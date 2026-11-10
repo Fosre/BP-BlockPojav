@@ -22,14 +22,20 @@ for key, value in {
     "launcher_name": "BlockPojav",
     "launcher_app_name": "BlockPojav Beta",
     "launcher_short_name": "BP Beta",
-    "url_home": "https://github.com/Fosre/BL-BlockLauncher",
+    "url_home": "https://github.com/Fosre/BP-BlockPojav",
     "launcher_version_code": "200050",
     "launcher_version_name": "0.1.0-beta.1",
 }.items():
     properties, count = re.subn(rf"(?m)^{re.escape(key)}=.*$", f"{key}={value}", properties)
     if count != 1:
         raise SystemExit(f"Expected one {key} property, found {count}")
-properties = re.sub(r"(?m)^default_(?:store|key)_password=.*\n", "", properties)
+for key, value in {
+    "default_store_password": "unused-blockpojav-beta-store",
+    "default_key_password": "unused-blockpojav-beta-key",
+}.items():
+    properties, count = re.subn(rf"(?m)^{re.escape(key)}=.*$", f"{key}={value}", properties)
+    if count != 1:
+        raise SystemExit(f"Expected one {key} property, found {count}")
 props.write_text(properties)
 
 build = build_file.read_text()

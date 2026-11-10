@@ -43,7 +43,8 @@ jobs:
           echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
 
       - name: Install Android NDK
-        run: "$SDKMANAGER" --install "ndk;27.0.12077973"
+        run: |
+          "$SDKMANAGER" --install "ndk;27.0.12077973"
 
       - name: Set up Rust Android target
         uses: dtolnay/rust-toolchain@stable
@@ -87,5 +88,4 @@ jobs:
           path: BlockPojav-Beta-source.zip
           if-no-files-found: error
           retention-days: 90
-
 

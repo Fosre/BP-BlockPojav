@@ -1,36 +1,83 @@
-name: Build BlockPojav APK
+name: Build BlockPojav Beta
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: blockpojav-beta-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Checkout
+      - name: Checkout BlockPojav settings and patch
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Checkout pinned launcher core
+        uses: actions/checkout@v4
+        with:
+          repository: ZalithLauncher/ZalithLauncher2
+          ref: 4607f153fcce149a8e0ad39dc93fc447589d9f17
+          path: engine
+          persist-credentials: false
+
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;27.0.12077973"
+
+      - name: Set up Rust Android target
+        uses: dtolnay/rust-toolchain@stable
         with:
-          gradle-version: '8.9'
+          targets: aarch64-linux-android
 
-      - name: Build APK
+      - name: Install cargo-ndk
         run: |
-          cd BlockPojav_Android
-          gradle assembleDebug
+          version="4.1.2"
+          curl -sL "https://github.com/bbqsrc/cargo-ndk/releases/download/v${version}/cargo-ndk-x86_64-unknown-linux-gnu-v${version}.tgz" |
+            tar xz -C "$HOME/.cargo/bin" --strip-components=1
+          chmod +x "$HOME/.cargo/bin"/cargo-ndk*
 
-      - name: Upload APK
+      - name: Prepare unofficial beta build
+        run: python3 scripts/prepare-zalith-beta.py engine
+
+      - name: Build ARM64 APK
+        working-directory: engine
+        run: |
+          chmod +x gradlew
+          ./gradlew ZalithLauncher:assembleDebug -Darch=arm64
+
+      - name: Upload BlockPojav Beta APK
         uses: actions/upload-artifact@v4
         with:
-          name: BlockPojav-debug-apk
-          path: BlockPojav_Android/app/build/outputs/apk/debug/*.apk
+          name: BlockPojav-Beta-arm64-apk
+          path: engine/ZalithLauncher/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Package corresponding GPL source
+        run: |
+          cd engine
+          zip -qr "$GITHUB_WORKSPACE/BlockPojav-Beta-source.zip" . \
+            -x '.git/*' '**/.git/*' '**/.gradle/*' '**/build/*' '**/*.jks'
+
+      - name: Upload corresponding source and license
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlockPojav-Beta-source-GPL-3.0
+          path: BlockPojav-Beta-source.zip
+          if-no-files-found: error
+          retention-days: 90
